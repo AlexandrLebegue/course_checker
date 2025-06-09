@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Checker - AI-Powered Exam Correction</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-graduation-cap"></i> Course Checker</h1>
+                <p>AI-Powered Exam Correction for Teachers</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Statement Document Section -->
+            <section class="statement-section">
+                <div class="statement-card">
+                    <h2><i class="fas fa-file-alt"></i> Statement Document</h2>
+                    <p>Upload the original exam statement to enable enhanced question-by-question analysis</p>
+                    
+                    <!-- Statement Upload Area -->
+                    <div class="statement-upload-area" id="statementUploadArea">
+                        <div class="statement-upload-content">
+                            <i class="fas fa-file-text upload-icon"></i>
+                            <h3>Upload Statement Document</h3>
+                            <p>or <span class="browse-link" id="statementBrowseLink">browse files</span></p>
+                            <small>Supports PDF, JPG, PNG (max 10MB)</small>
+                        </div>
+                        <input type="file" id="statementFileInput" accept=".pdf,.jpg,.jpeg,.png" hidden>
+                    </div>
+
+                    <!-- Active Statements List -->
+                    <div class="active-statements" id="activeStatements" style="display: none;">
+                        <h3><i class="fas fa-list"></i> Active Statement Documents</h3>
+                        <div class="statements-list" id="statementsList">
+                            <!-- Statements will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Statement Selection -->
+                    <div class="statement-selection" id="statementSelection" style="display: none;">
+                        <label for="statementSelect">
+                            <i class="fas fa-check-circle"></i> Select Statement for Analysis:
+                        </label>
+                        <select id="statementSelect" class="statement-select">
+                            <option value="">No statement selected (basic analysis)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="upload-card">
+                    <h2><i class="fas fa-cloud-upload-alt"></i> Upload Exam Files</h2>
+                    <p>Upload PDF files or images of student exams for AI analysis</p>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <i class="fas fa-file-upload upload-icon"></i>
+                            <h3>Drag & Drop Files Here</h3>
+                            <p>or <span class="browse-link">browse files</span></p>
+                            <small>Supports PDF, JPG, PNG (max 10MB per file)</small>
+                        </div>
+                        <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" hidden>
+                    </div>
+
+                    <div class="file-list" id="fileList"></div>
+                    
+                    <button class="analyze-btn" id="analyzeBtn" disabled>
+                        <i class="fas fa-brain"></i> Analyze with AI
+                    </button>
+                </div>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-card">
+                    <h3><i class="fas fa-cog fa-spin"></i> Processing Files...</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="progressText">Preparing files for analysis...</p>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-chart-line"></i> Analysis Results</h2>
+                    <div class="results-actions">
+                        <button class="export-pdf-btn" id="exportPdfBtn">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                        <button class="new-analysis-btn" id="newAnalysisBtn">
+                            <i class="fas fa-plus"></i> New Analysis
+                        </button>
+                    </div>
+                </div>
+                <div class="results-container" id="resultsContainer">
+                    <!-- Results will be populated here -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 Course Checker. Powered by AI for Educational Excellence. Made by Alexandre Lebegue</p>
+        </footer>
+    </div>
+
+    <!-- AI Thinking Indicator -->
+    <div class="ai-thinking-container" id="aiThinkingContainer" style="display: none;">
+        <div class="ai-thinking-card">
+            <div class="ai-thinking-header">
+                <div class="ai-avatar">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="ai-thinking-content">
+                    <h4>AI is analyzing...</h4>
+                    <div class="thinking-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+            <div class="ai-status-text" id="aiStatusText">Preparing analysis...</div>
+            <div class="ai-progress-bar">
+                <div class="ai-progress-fill" id="aiProgressFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
