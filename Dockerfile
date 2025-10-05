@@ -4,6 +4,13 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
+# Install system dependencies for pdf2pic and sharp
+RUN apk add --no-cache \
+    graphicsmagick \
+    ghostscript \
+    fontconfig \
+    ttf-dejavu
+
 # Copy package files
 COPY package*.json ./
 

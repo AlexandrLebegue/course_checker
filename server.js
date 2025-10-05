@@ -7,6 +7,7 @@ const fileProcessor = require('./services/fileProcessor');
 const aiService = require('./services/aiService');
 const statementService = require('./services/statementService');
 const pdfService = require('./services/pdfService');
+const quizService = require('./services/quizService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -245,6 +246,179 @@ app.post('/api/export-pdf', async (req, res) => {
         console.error('Error generating PDF report:', error);
         res.status(500).json({
             error: 'Failed to generate PDF report',
+            details: error.message
+        });
+    }
+});
+
+// ===== QUIZ ROUTES =====
+
+// Quiz page route
+app.get('/quiz', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'quiz.html'));
+});
+
+// Upload course material for quiz generation
+app.post('/api/quiz/upload', fileProcessor.upload, async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No course material uploaded' });
+        }
+
+        if (req.files.length > 1) {
+            return res.status(400).json({ error: 'Please upload only one course document at a time' });
+        }
+
+        const file = req.files[0];
+        console.log(`Processing course material: ${file.originalname}`);
+        
+        // Convert file to images for AI processing
+        const images = await fileProcessor.processFile(file);
+        
+        // Extract content using AI
+        const courseContent = await aiService.extractContent(images);
+        
+        // Generate unique course ID
+        const courseId = quizService.generateId('course');
+        
+        // Store course content
+        const courseData = quizService.storeCourseContent(courseId, courseContent, file.originalname);
+        
+        // Clean up temporary files
+        fileProcessor.cleanup(file.path);
+        
+        res.json({
+            success: true,
+            course: {
+                id: courseData.id,
+                filename: courseData.filename,
+                timestamp: courseData.timestamp
+            }
+        });
+
+    } catch (error) {
+        console.error('Error processing course material:', error);
+        res.status(500).json({
+            error: 'Failed to process course material',
+            details: error.message
+        });
+    }
+});
+
+// Generate quiz from course content
+app.post('/api/quiz/generate', async (req, res) => {
+    try {
+        const { courseId } = req.body;
+        
+        if (!courseId) {
+            return res.status(400).json({ error: 'Course ID is required' });
+        }
+
+        // Get course content
+        const courseData = quizService.getCourseContent(courseId);
+        if (!courseData) {
+            return res.status(404).json({ error: 'Course not found' });
+        }
+
+        console.log(`Generating quiz for course: ${courseId}`);
+        
+        // Generate quiz using AI
+        const questions = await aiService.generateQuiz(courseData.content, 10);
+        
+        // Generate unique quiz ID
+        const quizId = quizService.generateId('quiz');
+        
+        // Store quiz
+        const quizData = quizService.storeQuiz(quizId, courseId, questions);
+        
+        res.json({
+            success: true,
+            quiz: {
+                id: quizData.id,
+                courseId: quizData.courseId,
+                questions: questions.map(q => ({
+                    id: q.id,
+                    type: q.type,
+                    question: q.question,
+                    options: q.options
+                    // Note: correctAnswer is not sent to client
+                })),
+                timestamp: quizData.timestamp
+            }
+        });
+
+    } catch (error) {
+        console.error('Error generating quiz:', error);
+        res.status(500).json({
+            error: 'Failed to generate quiz',
+            details: error.message
+        });
+    }
+});
+
+// Submit quiz answers and get results
+app.post('/api/quiz/submit', async (req, res) => {
+    try {
+        const { quizId, answers } = req.body;
+        
+        if (!quizId) {
+            return res.status(400).json({ error: 'Quiz ID is required' });
+        }
+        
+        if (!answers || typeof answers !== 'object') {
+            return res.status(400).json({ error: 'Answers are required' });
+        }
+
+        console.log(`Submitting answers for quiz: ${quizId}`);
+        
+        // Store result and calculate score
+        const result = quizService.storeResult(quizId, answers);
+        
+        res.json({
+            success: true,
+            result: result
+        });
+
+    } catch (error) {
+        console.error('Error submitting quiz:', error);
+        res.status(500).json({
+            error: 'Failed to submit quiz',
+            details: error.message
+        });
+    }
+});
+
+// Get quiz history
+app.get('/api/quiz/history', (req, res) => {
+    try {
+        const history = quizService.getAllHistory();
+        
+        res.json({
+            success: true,
+            history: history,
+            stats: quizService.getStats()
+        });
+    } catch (error) {
+        console.error('Error getting quiz history:', error);
+        res.status(500).json({
+            error: 'Failed to get quiz history',
+            details: error.message
+        });
+    }
+});
+
+// Get quiz statistics
+app.get('/api/quiz/stats', (req, res) => {
+    try {
+        const stats = quizService.getStats();
+        res.json({
+            success: true,
+            stats: stats
+        });
+    } catch (error) {
+        console.error('Error getting quiz stats:', error);
+        res.status(500).json({
+            error: 'Failed to get quiz statistics',
             details: error.message
         });
     }

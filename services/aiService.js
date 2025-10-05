@@ -441,6 +441,140 @@ Format as JSON:
             return { matches: [] };
         }
     }
+    /**
+     * Generate a quiz from course content
+     * @param {string} courseContent - Extracted course content
+     * @param {number} numQuestions - Number of questions to generate (default: 10)
+     * @returns {Array} Array of quiz questions
+     */
+    async generateQuiz(courseContent, numQuestions = 10) {
+        try {
+            console.log(`Generating quiz with ${numQuestions} questions from course content...`);
+            
+            const quizPrompt = `
+You are an expert educator creating a quiz from the following course material.
+
+COURSE CONTENT:
+${courseContent}
+
+Generate exactly ${numQuestions} quiz questions based on this content. Mix the question types:
+- Approximately 50% should be multiple choice (4 options each)
+- Approximately 50% should be true/false questions
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanations. Format:
+{
+  "questions": [
+    {
+      "id": 1,
+      "type": "multiple_choice",
+      "question": "Question text here?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "Option B"
+    },
+    {
+      "id": 2,
+      "type": "true_false",
+      "question": "Statement to evaluate?",
+      "correctAnswer": "true"
+    }
+  ]
+}
+
+Guidelines:
+- Questions should test understanding of key concepts
+- Make questions clear and unambiguous
+- Ensure correct answers are accurate
+- For true/false, use "true" or "false" as strings
+- For multiple choice, correctAnswer must exactly match one option
+- Mix difficulty levels
+- Cover different topics from the material`;
+
+            const response = await axios.post(
+                `${this.baseURL}/chat/completions`,
+                {
+                    model: this.analysisModel,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: quizPrompt
+                        }
+                    ],
+                    max_tokens: 4000,
+                    temperature: 0.7
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': 'http://localhost:3000',
+                        'X-Title': 'Course Checker - Quiz Generator'
+                    }
+                }
+            );
+
+            // Validate response structure
+            if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
+                console.error('Invalid response structure from quiz generation API');
+                throw new Error('Invalid response structure from AI service');
+            }
+
+            const quizText = response.data.choices[0].message.content;
+            
+            if (!quizText) {
+                throw new Error('Empty response from AI service');
+            }
+
+            // Clean up the response - remove markdown code blocks if present
+            let cleanedResponse = quizText.trim();
+            if (cleanedResponse.startsWith('```json')) {
+                cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            } else if (cleanedResponse.startsWith('```')) {
+                cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+            }
+
+            // Try to parse JSON response
+            try {
+                const quizData = JSON.parse(cleanedResponse);
+                
+                if (!quizData.questions || !Array.isArray(quizData.questions)) {
+                    throw new Error('Invalid quiz format: missing questions array');
+                }
+
+                // Validate each question
+                const validatedQuestions = quizData.questions.map((q, index) => {
+                    if (!q.type || !q.question || !q.correctAnswer) {
+                        throw new Error(`Invalid question at index ${index}: missing required fields`);
+                    }
+
+                    if (q.type === 'multiple_choice' && (!q.options || !Array.isArray(q.options) || q.options.length < 2)) {
+                        throw new Error(`Invalid multiple choice question at index ${index}: insufficient options`);
+                    }
+
+                    return {
+                        id: q.id || index + 1,
+                        type: q.type,
+                        question: q.question,
+                        options: q.options || null,
+                        correctAnswer: q.correctAnswer
+                    };
+                });
+
+                console.log(`Successfully generated ${validatedQuestions.length} quiz questions`);
+                return validatedQuestions;
+
+            } catch (parseError) {
+                console.error('Failed to parse quiz JSON:', parseError.message);
+                console.error('Raw response:', quizText);
+                console.error('Cleaned response:', cleanedResponse);
+                throw new Error(`Failed to parse quiz response: ${parseError.message}`);
+            }
+
+        } catch (error) {
+            console.error('Error generating quiz:', error.response?.data || error.message);
+            throw new Error(`Quiz generation failed: ${error.message}`);
+        }
+    }
+
 
     /**
      * Test API connection
